@@ -49,3 +49,29 @@ The "Curator" API is the backend service for a content curation platform. Its mi
 - [ ] Set up the main database connection logic in `app/database.py`.
 - [ ] Initialize Alembic for this project and generate the first migration script.
 - [ ] Apply the first migration to create all tables in the database.
+
+### Week 4 Development Plan (Oct 27 - Nov 2)
+
+This week is focused on establishing the complete database and data model foundation for the project.
+
+- [ ] **Monday: Application Structure & Core Files**
+    - Create the main application scaffolding inside the `app/` directory.
+    - Create the initial empty files: `main.py`, `database.py`, `models.py`, `schemas.py`, and `crud.py`.
+    - Set up the basic FastAPI app instance in `main.py`.
+
+- [ ] **Tuesday: Database Models**
+    - In `app/models.py`, define the SQLAlchemy classes for `User`, `Content`, and `Tag`.
+    - Pay close attention to defining columns, data types, and relationships (e.g., foreign keys).
+
+- [ ] **Wednesday: Data Schemas**
+    - In `app/schemas.py`, define the Pydantic models that will be used for data validation in API requests and responses.
+    - Create schemas for `UserCreate`, `User`, `ContentCreate`, `Content`, etc.
+
+- [ ] **Thursday: Database Connection**
+    - In `app/database.py`, write the logic to create the SQLAlchemy engine.
+    - Implement the function to create and yield a database session (`get_db`) that will be used for dependency injection in FastAPI.
+
+- [ ] **Friday: Migrations & Final Integration**
+    - Initialize Alembic within the `curator-api` project.
+    - Configure `alembic.ini` and `alembic/env.py` to point to the PostgreSQL database and the new models.
+    - Generate the first auto-generated migration script to create all tables.
