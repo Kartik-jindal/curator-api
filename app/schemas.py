@@ -95,7 +95,6 @@ class User(BaseModel):
     class Config:
         # Enable ORM mode to read from the User SQLAlchemy model.
         orm_mode = True
-
         
 class Token(BaseModel):
     """
