@@ -3,6 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Environment files
+# Do not commit this file to version control.
+.env
+project_architecture.md 
+relationships_notes.md
+
+
 # C extensions
 *.so
 

@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from .database import engine
 # Import the models 
 from . import models
-# Import the router for user-related endpoints
-from .routers import users
+# Import the router for user-related endpoints and authentication endpoints
+from .routers import users , auth
 
 # When our application starts, it tells SQLAlchemy
 # to look at all the classes that inherit from Base (our models) and create
@@ -19,6 +19,7 @@ app = FastAPI(title="Curator API")
 # This line connects the router from app/routers/users.py to our main app.
 # Now, any endpoint defined in that router will be part of the main application.
 app.include_router(users.router)
+app.include_router(auth.router)
 
 # The root endpoint, for a simple health check.
 @app.get("/", tags=["Root"])

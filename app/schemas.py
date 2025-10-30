@@ -95,3 +95,25 @@ class User(BaseModel):
     class Config:
         # Enable ORM mode to read from the User SQLAlchemy model.
         orm_mode = True
+
+        
+class Token(BaseModel):
+    """
+    Pydantic model for the authentication token response.
+    This defines the shape of the JSON object returned upon successful login.
+    """
+    # The JWT access token itself.
+    access_token: str
+    
+    # The type of the token, typically "bearer".
+    token_type: str
+
+
+class TokenData(BaseModel):
+    """
+    Pydantic model for the data encoded within the JWT.
+    This is used when decoding a token to validate its contents.
+    """
+    # The 'subject' of the token, which we use to store the user's email.
+    # It can be a string or None if the token is invalid or doesn't have a subject.
+    email: str | None = None
