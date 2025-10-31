@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from . import security
+# app/crud.py
+from typing import List, Optional
+from . import models, schemas, security
+# ... rest of the file
 # We import models and schemas to have access to our Pydantic and SQLAlchemy models.
 # The '.' means import from the same directory (the 'app' folder).
 
@@ -42,3 +46,28 @@ def create_user(db: Session, user: schemas.UserCreate):
     
     # Step 6: Return the new user instance.
     return db_user
+
+def create_user_content(db: Session, content: schemas.ContentCreate, user_id: int) -> models.Content:
+    """Creates a new content item in the DB associated with a user."""
+    db_content = models.Content(**content.dict(), owner_id=user_id)
+    db.add(db_content)
+    db.commit()
+    db.refresh(db_content)
+    return db_content
+
+def get_content(db: Session, skip: int = 0, limit: int = 100) -> List[models.Content]:
+    """Returns a list of all content items, with pagination."""
+    return db.query(models.Content).offset(skip).limit(limit).all()
+
+def get_content_by_id(db: Session, content_id: int) -> Optional[models.Content]:
+    """Returns a single content item by its ID, or None if not found."""
+    return db.query(models.Content).filter(models.Content.id == content_id).first()
+
+
+def delete_content_by_id(db: Session, content_id: int) -> Optional[models.Content]:
+    """Deletes a content item from the DB by its ID."""
+    db_content = db.query(models.Content).filter(models.Content.id == content_id).first()
+    if db_content:
+        db.delete(db_content)
+        db.commit()
+    return db_content

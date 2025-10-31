@@ -1,8 +1,12 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import jwt
+from jose import jwt , JWTError
 from .config import settings
+from fastapi import Depends , HTTPException , status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from . import crud , database , schemas , models
 
 # Create a CryptContext instance for password hashing
 # "bcrypt" is a secure and common choice
@@ -65,3 +69,60 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     )
     
     return encoded_jwt
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme), 
+    db: Session = Depends(database.get_db)
+) -> models.User:
+    """
+    Decodes a JWT token, validates it, and fetches the user from the database.
+
+    This is a dependency function that will be injected into protected endpoints.
+
+    Args:
+        token (str): The JWT from the 'Authorization: Bearer <token>' header.
+                     This is injected automatically by `Depends(oauth2_scheme)`.
+        db (Session): The database session, injected by `Depends(database.get_db)`.
+
+    Returns:
+        models.User: The authenticated SQLAlchemy user model.
+    
+    Raises:
+        HTTPException 401: If credentials cannot be validated for any reason.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(
+            token, 
+            settings.SECRET_KEY, 
+            algorithms=[settings.ALGORITHM]
+        )
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(email=email)
+    except JWTError:
+        raise credentials_exception
+
+    user = crud.get_user_by_email(db, email=token_data.email)
+    if user is None:
+        raise credentials_exception
+    
+    return user
+
+def get_current_active_user(
+    current_user: models.User = Depends(get_current_user)
+) -> models.User:
+    """
+    A dependency wrapper that gets the current user and can be extended
+    to check if the user is active.
+    """
+    return current_user

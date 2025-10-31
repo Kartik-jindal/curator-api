@@ -8,8 +8,8 @@ __pycache__/
 .env
 project_architecture.md 
 relationships_notes.md
-
-
+Meganotes.md
+MEGANOTES.adoc
 # C extensions
 *.so
 
