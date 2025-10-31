@@ -129,3 +129,38 @@ def add_tag_to_a_piece_of_content(
     updated_content = crud.add_tag_to_content(db=db, content=content, tag=tag)
 
     return updated_content
+
+@router.put("/{content_id}", response_model=schemas.Content)
+def update_a_piece_of_content(
+    content_id: int,
+    content_update: schemas.ContentCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_active_user)
+):
+    """
+    Updates a piece of content.
+
+    - **Authentication**: Requires a valid JWT access token.
+    - **Authorization**: Requires the logged-in user to be the owner of the content.
+    - The request body should contain the fields to be updated.
+    """
+    # 1. Fetch the existing content item from the database.
+    content = crud.get_content_by_id(db, content_id=content_id)
+    if not content:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
+
+    # 2. Authorization Check: Ensure the current user owns the content.
+    if content.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update this content"
+        )
+        
+    # 3. Call the CRUD function to perform the update.
+    updated_content = crud.update_content(
+        db=db, 
+        content=content, 
+        content_update=content_update
+    )
+
+    return updated_content

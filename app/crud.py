@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
-
+from sqlalchemy import desc
 from . import models, schemas, security
 
 def get_user_by_email(db: Session, email:str):
@@ -114,9 +114,88 @@ def get_content(db: Session, skip: int = 0, limit: int = 100) -> List[models.Con
     """Returns a list of all content items, with pagination."""
     return db.query(models.Content).offset(skip).limit(limit).all()
 
+def get_user_feed(db: Session, user: models.User, skip: int = 0, limit: int = 100) -> List[models.Content]:
+    """
+    Constructs a personalized feed for a user based on the tags they follow.
+
+    The query performs the following steps:
+    1. Identifies all tags the user follows.
+    2. Joins the Content and Tag tables via the content_tags_association table.
+    3. Filters the content to include only items tagged with one of the user's followed tags.
+    4. Removes duplicate content items.
+    5. Orders the final list by the content's creation date (newest first).
+    6. Applies pagination (skip/limit).
+
+    Args:
+        db (Session): The SQLAlchemy database session.
+        user (models.User): The authenticated user for whom to generate the feed.
+        skip (int): The number of items to skip for pagination.
+        limit (int): The maximum number of items to return.
+
+    Returns:
+        List[models.Content]: A list of Content objects for the user's feed.
+    """
+    # 1. Get the IDs of the tags the user follows.
+    followed_tag_ids = [tag.id for tag in user.followed_tags]
+
+    # If the user follows no tags, their feed is empty.
+    if not followed_tag_ids:
+        return []
+
+    # 2. Construct the complex query.
+    feed_query = (
+        db.query(models.Content)
+        # Join Content with its tags relationship.
+        .join(models.Content.tags)
+        # Filter to get content where the tag's ID is in our list of followed tags.
+        .filter(models.Tag.id.in_(followed_tag_ids))
+        # Ensure we don't get duplicate content items.
+        .distinct()
+        # Order the results so the newest content is first.
+        .order_by(desc(models.Content.created_at))
+        # Apply pagination.
+        .offset(skip)
+        .limit(limit)
+    )
+    
+    # 3. Execute the query and return the results.
+    return feed_query.all()
+
 def get_content_by_id(db: Session, content_id: int) -> Optional[models.Content]:
     """Returns a single content item by its ID, or None if not found."""
     return db.query(models.Content).filter(models.Content.id == content_id).first()
+
+def update_content(
+    db: Session, 
+    content: models.Content, 
+    content_update: schemas.ContentCreate
+) -> models.Content:
+    """
+    Updates an existing content item in the database.
+
+    Args:
+        db (Session): The SQLAlchemy database session.
+        content (models.Content): The existing SQLAlchemy Content object to be updated.
+        content_update (schemas.ContentCreate): A Pydantic model with the new data for the content.
+
+    Returns:
+        models.Content: The updated SQLAlchemy Content object.
+    """
+    # Get the Pydantic model as a dictionary
+    update_data = content_update.dict(exclude_unset=True)
+    
+    # Iterate over the key-value pairs in the update data
+    for key, value in update_data.items():
+        # Use setattr to dynamically set the attribute on the SQLAlchemy model
+        setattr(content, key, value)
+        
+    # The `content` object is now "dirty" in the session.
+    # We commit the session to write the changes to the database.
+    db.commit()
+    # Refresh the instance to get the final state from the database.
+    db.refresh(content)
+    
+    return content
 
 def get_tag_by_id(db: Session, tag_id: int) -> Optional[models.Tag]:
     """Retrieves a single tag from the database by its primary key ID."""
@@ -199,3 +278,10 @@ def get_tag_by_name(db: Session, name: str) -> Optional[models.Tag]:
     # Apply a filter to find a row where the 'name' column matches the provided name.
     # .first() executes the query and returns the first result or None.
     return db.query(models.Tag).filter(models.Tag.name == name).first()
+
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[models.User]:
+    """
+    Retrieves a single user from the database by their primary key ID.
+    """
+    return db.query(models.User).filter(models.User.id == user_id).first()
