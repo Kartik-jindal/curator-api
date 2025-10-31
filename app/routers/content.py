@@ -93,3 +93,39 @@ def delete_user_content(
     
     # Return the data of the deleted item as confirmation.
     return db_content
+@router.post("/{content_id}/tags/{tag_id}", response_model=schemas.Content)
+def add_tag_to_a_piece_of_content(
+    content_id: int,
+    tag_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_active_user)
+):
+    """
+    Associates an existing tag with an existing piece of content.
+
+    - **Authentication**: Requires a valid JWT to prove the user is logged in.
+    - **Authorization**: Requires the logged-in user to be the owner of the content.
+    """
+    # 1. Fetch the content item from the database.
+    content = crud.get_content_by_id(db, content_id=content_id)
+    if not content:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
+
+    # 2. Authorization Check: Ensure the current user owns the content.
+    if content.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to modify this content"
+        )
+
+    # 3. Fetch the tag from the database.
+    # We need a `get_tag_by_id` CRUD function for this. Let's assume it exists
+    # and we will create it right after this step.
+    tag = crud.get_tag_by_id(db, tag_id=tag_id)
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found")
+        
+    # 4. Call the CRUD function to create the association.
+    updated_content = crud.add_tag_to_content(db=db, content=content, tag=tag)
+
+    return updated_content

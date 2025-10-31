@@ -7,7 +7,7 @@ from fastapi import FastAPI
 # from . import models          <-- No longer needed here
 
 # Import all the routers for your different application sections
-from .routers import users, auth, content
+from .routers import users, auth, content , tags
 
 # Create the main FastAPI application instance.
 app = FastAPI(title="Curator API")
@@ -17,6 +17,7 @@ app = FastAPI(title="Curator API")
 app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(content.router)
+app.include_router(tags.router)
 
 # The root endpoint, for a simple health check to see if the API is running.
 @app.get("/", tags=["Root"])
